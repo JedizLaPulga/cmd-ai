@@ -1,5 +1,7 @@
 import sys
+
 from cmd_ai.gui import App
+
 
 def main():
     try:

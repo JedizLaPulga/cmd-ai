@@ -1,6 +1,8 @@
 from __future__ import annotations
-import sys
+
 import os
+import sys
+
 from llama_cpp import Llama
 
 DEFAULT_MODEL_PATH = "./qwen2.5-coder-1.5b-instruct-q4_k_m.gguf"
@@ -8,13 +10,42 @@ DEFAULT_MODEL_PATH = "./qwen2.5-coder-1.5b-instruct-q4_k_m.gguf"
 class CommandGenerator:
     def __init__(self, model_path: str = DEFAULT_MODEL_PATH):
         self.model_path = model_path
-        if not os.path.exists(self.model_path):
-            from cmd_ai.downloader import download_model_interactive
-            print(f"[!] Model file not found at: {self.model_path}")
-            if download_model_interactive():
-                print("[!] Model downloaded. Initializing...")
+        # robust path resolution
+        candidates = [
+            model_path,
+            os.path.abspath(model_path),
+            os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                "qwen2.5-coder-1.5b-instruct-q4_k_m.gguf"
+            ),
+            os.path.join(os.getcwd(), "qwen2.5-coder-1.5b-instruct-q4_k_m.gguf")
+        ]
+        
+        found_path = None
+        for candidate in candidates:
+            if os.path.exists(candidate):
+                found_path = candidate
+                break
+        
+        if found_path:
+            self.model_path = found_path
+        else:
+            # Check if likely in a non-interactive environment (GUI)
+            # If so, do NOT call interactive download which blocks.
+            if sys.stdin and sys.stdin.isatty():
+                from cmd_ai.downloader import download_model_interactive
+                print(f"[!] Model file not found. Searched: {candidates}")
+                if download_model_interactive():
+                    print("[!] Model downloaded. Initializing...")
+                    self.model_path = "qwen2.5-coder-1.5b-instruct-q4_k_m.gguf" # Default download location
+                else:
+                    raise RuntimeError("Model download cancelled.")
             else:
-                raise RuntimeError("Model file missing. Cannot proceed.")
+                 msg = (
+                     f"Model file missing. Please run 'python -m cmd_ai.downloader' "
+                     f"to setup. (Searched: {candidates})"
+                 )
+                 raise RuntimeError(msg)
 
         print(f"Loading AI Model from {self.model_path}...")
         try:
@@ -32,26 +63,25 @@ class CommandGenerator:
             "If the request is ambiguous, guess the most standard command."
         )
         
-        if flag == "linux":
-            return f"You are an expert Linux Bash assistant. {base_instruction}"
-        elif flag == "windows-ps":
-            return f"You are an expert Windows PowerShell assistant. {base_instruction}"
-        elif flag == "windows-cli":
-            return f"You are an expert Windows Command Prompt (cmd) assistant. {base_instruction}"
-        elif flag == "macos":
-            return f"You are an expert macOS Terminal (Zsh) assistant. Use 'open', 'pbcopy', 'brew' where applicable. {base_instruction}"
-        elif flag == "git":
-            return f"You are an expert Git CLI assistant. {base_instruction}"
-        elif flag == "docker":
-            return f"You are an expert Docker CLI assistant. {base_instruction}"
-        elif flag == "kubectl":
-            return f"You are an expert Kubernetes (kubectl) assistant. {base_instruction}"
-        elif flag == "aws":
-            return f"You are an expert AWS CLI assistant. {base_instruction}"
-        elif flag == "sql":
-            return f"You are an expert SQL assistant. Output standard ANSI SQL unless asked otherwise. {base_instruction}"
-        else:
-            return f"You are a helpful command line assistant. {base_instruction}"
+        prompts = {
+            "linux": f"You are an expert Linux Bash assistant. {base_instruction}",
+            "windows-ps": f"You are an expert Windows PowerShell assistant. {base_instruction}",
+            "windows-cli": f"You are an expert Windows Command Prompt (cmd) assistant. {base_instruction}",
+            "macos": (
+                f"You are an expert macOS Terminal (Zsh) assistant. "
+                f"Use 'open', 'pbcopy', 'brew' where applicable. {base_instruction}"
+            ),
+            "git": f"You are an expert Git CLI assistant. {base_instruction}",
+            "docker": f"You are an expert Docker CLI assistant. {base_instruction}",
+            "kubectl": f"You are an expert Kubernetes (kubectl) assistant. {base_instruction}",
+            "aws": f"You are an expert AWS CLI assistant. {base_instruction}",
+            "sql": (
+                f"You are an expert SQL assistant. Output standard ANSI SQL "
+                f"unless asked otherwise. {base_instruction}"
+            ),
+        }
+        
+        return prompts.get(flag, f"You are a helpful command line assistant. {base_instruction}")
 
     def generate(self, user_input: str, flag: str) -> str:
         """Sends the natural language to the LLM and gets code back."""

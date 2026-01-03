@@ -1,7 +1,7 @@
 import os
 import sys
-import urllib.request
 import time
+import urllib.request
 
 MODEL_URL = "https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/qwen2.5-coder-1.5b-instruct-q4_k_m.gguf"
 FILENAME = "qwen2.5-coder-1.5b-instruct-q4_k_m.gguf"
@@ -17,7 +17,7 @@ def check_model_exists():
 
 def download_model_interactive():
     print(f"\n[!] Model file '{FILENAME}' is missing.")
-    print(f"[!] This tool requires the Qwen 2.5 Coder GGUF model (~1.0 GB).")
+    print("[!] This tool requires the Qwen 2.5 Coder GGUF model (~1.0 GB).")
     
     response = input("Would you like to download it now? [y/N]: ").strip().lower()
     if response not in ('y', 'yes'):

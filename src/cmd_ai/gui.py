@@ -1,6 +1,7 @@
-import customtkinter as ctk
 import threading
-import sys
+
+import customtkinter as ctk
+
 from cmd_ai.llm import CommandGenerator
 
 ctk.set_appearance_mode("Dark")
@@ -99,7 +100,8 @@ class App(ctk.CTk):
         except Exception as e:
             # Failure -> Red
             self.after(0, lambda: self.update_status("#ff0000"))
-            self.after(0, lambda: self.add_message("System", f"error, cant load brain of app: {e}", is_user=False))
+            err_msg = str(e)
+            self.after(0, lambda: self.add_message("System", f"error, cant load brain of app: {err_msg}", is_user=False))
 
     def create_sidebar(self):
         self.sidebar_frame = ctk.CTkFrame(self, width=140, corner_radius=0)
@@ -166,7 +168,9 @@ class App(ctk.CTk):
             response = self.generator.generate(text, self.current_flag)
             self.after(0, lambda: self.display_response(response))
         except Exception as e:
-            self.after(0, lambda: self.add_message("System", f"Error: {e}", is_user=False))
+            err_msg = str(e)
+            self.after(0, lambda: self.add_message("System", f"Error: {err_msg}", is_user=False))
+            self.after(0, lambda: self.entry.configure(state="normal"))
 
     def display_response(self, text):
         self.add_message("AI", text, is_user=False)
