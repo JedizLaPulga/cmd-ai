@@ -58,30 +58,64 @@ class CommandGenerator:
     def get_system_prompt(self, flag: str) -> str:
         """Returns the persona instructions based on the user's flag."""
         base_instruction = (
-            "You strictly output ONLY the executable command. "
-            "No markdown, no explanations, no headers. "
-            "If the request is ambiguous, guess the most standard command."
+            "You are a highly accurate command line assistant. "
+            "Your ONLY task is to output the precise, executable shell command for the user's request.\n"
+            "Rules:\n"
+            "1. Output ONLY the command. No markdown, no comments, no explanations, no prologue.\n"
+            "2. If multiple steps are needed, chain them with && or ; appropriate for the shell.\n"
+            "3. If the request is ambiguous, generate the most standard, safe command.\n"
+            "4. Do NOT use placeholders like <file> unless unavoidable. Try to infer or use '*'.\n"
         )
         
-        prompts = {
-            "linux": f"You are an expert Linux Bash assistant. {base_instruction}",
-            "windows-ps": f"You are an expert Windows PowerShell assistant. {base_instruction}",
-            "windows-cli": f"You are an expert Windows Command Prompt (cmd) assistant. {base_instruction}",
+        examples = {
+            "linux": (
+                "User: list all files detailed\nAssistant: ls -la\n"
+                "User: count lines in file.txt\nAssistant: wc -l file.txt"
+            ),
+            "windows-ps": (
+                "User: list files\nAssistant: Get-ChildItem\n"
+                "User: download file from url\nAssistant: Invoke-WebRequest -Uri 'url' -OutFile 'file'"
+            ),
+            "windows-cli": (
+                "User: show files\nAssistant: dir\n"
+                "User: delete folder\nAssistant: rmdir /s /q folder"
+            ),
             "macos": (
-                f"You are an expert macOS Terminal (Zsh) assistant. "
-                f"Use 'open', 'pbcopy', 'brew' where applicable. {base_instruction}"
+                "User: copy file to clipboard\nAssistant: pbcopy < file.txt\n"
+                "User: install git\nAssistant: brew install git"
             ),
-            "git": f"You are an expert Git CLI assistant. {base_instruction}",
-            "docker": f"You are an expert Docker CLI assistant. {base_instruction}",
-            "kubectl": f"You are an expert Kubernetes (kubectl) assistant. {base_instruction}",
-            "aws": f"You are an expert AWS CLI assistant. {base_instruction}",
+            "git": (
+                "User: undo last commit\nAssistant: git reset --soft HEAD~1\n"
+                "User: push new branch\nAssistant: git push -u origin HEAD"
+            ),
+            "docker": (
+                "User: run nginx\nAssistant: docker run -d -p 80:80 nginx\n"
+                "User: clean system\nAssistant: docker system prune -f"
+            ),
+            "kubectl": (
+                "User: get pods\nAssistant: kubectl get pods\n"
+                "User: logs for service\nAssistant: kubectl logs -l app=service"
+            ),
+            "aws": (
+                "User: list buckets\nAssistant: aws s3 ls\n"
+                "User: describe instances\nAssistant: aws ec2 describe-instances"
+            ),
             "sql": (
-                f"You are an expert SQL assistant. Output standard ANSI SQL "
-                f"unless asked otherwise. {base_instruction}"
-            ),
+                "User: select all users\nAssistant: SELECT * FROM users;\n"
+                "User: count orders\nAssistant: SELECT COUNT(*) FROM orders;"
+            )
         }
+
+        # Select prompt
+        role = f"You are an expert {flag} assistant. "
         
-        return prompts.get(flag, f"You are a helpful command line assistant. {base_instruction}")
+        specific_examples = examples.get(flag, "")
+        if specific_examples:
+            full_prompt = f"{role}{base_instruction}\nExamples:\n{specific_examples}"
+        else:
+            full_prompt = f"{role}{base_instruction}"
+            
+        return full_prompt
 
     def generate(self, user_input: str, flag: str) -> str:
         """Sends the natural language to the LLM and gets code back."""
