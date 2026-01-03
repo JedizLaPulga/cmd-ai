@@ -6,6 +6,60 @@ from tkinter import ttk
 from cmd_ai.knowledge_base import OSName, ShellName, suggest_command
 
 
+def _apply_dark_theme(style: ttk.Style, root: tk.Tk) -> None:
+    # Tkinter/ttk theming is limited and OS-dependent. "clam" tends to be the
+    # most reliable base theme for custom colors.
+    bg = "#0f172a"  # deep slate
+    card_bg = "#111c33"
+    fg = "#e5e7eb"
+    muted = "#a1a1aa"
+    entry_bg = "#0b1223"
+    button_bg = "#1f2a44"
+    active_bg = "#2a3a5f"
+
+    root.configure(background=bg)
+
+    style.configure(".", background=bg, foreground=fg)
+    style.configure("TFrame", background=bg)
+    style.configure("Card.TFrame", background=card_bg)
+    style.configure("TLabel", background=card_bg, foreground=fg)
+
+    style.configure(
+        "TEntry",
+        fieldbackground=entry_bg,
+        foreground=fg,
+        background=entry_bg,
+        insertcolor=fg,
+    )
+    style.map("TEntry", fieldbackground=[("readonly", entry_bg)])
+
+    style.configure(
+        "TCombobox",
+        fieldbackground=entry_bg,
+        foreground=fg,
+        background=entry_bg,
+        insertcolor=fg,
+        arrowcolor=fg,
+    )
+    style.map(
+        "TCombobox",
+        fieldbackground=[("readonly", entry_bg)],
+        foreground=[("readonly", fg)],
+    )
+
+    style.configure(
+        "TButton",
+        padding=(12, 6),
+        background=button_bg,
+        foreground=fg,
+    )
+    style.map(
+        "TButton",
+        background=[("active", active_bg)],
+        foreground=[("disabled", muted)],
+    )
+
+
 class App(ttk.Frame):
     def __init__(self, master: tk.Misc) -> None:
         super().__init__(master)
@@ -21,35 +75,31 @@ class App(ttk.Frame):
         self._sync_shell_options()
 
     def _build(self) -> None:
-        self.grid(column=0, row=0, sticky="nsew")
-        self.master.rowconfigure(0, weight=1)
-        self.master.columnconfigure(0, weight=1)
-
         self.columnconfigure(0, weight=1)
 
         title = ttk.Label(self, text="cmd-ai", font=("Segoe UI", 14, "bold"))
-        title.grid(column=0, row=0, sticky="w", padx=12, pady=(12, 6))
+        title.grid(column=0, row=0, sticky="w", pady=(0, 10))
 
         form = ttk.Frame(self)
-        form.grid(column=0, row=1, sticky="ew", padx=12)
+        form.grid(column=0, row=1, sticky="ew")
         form.columnconfigure(1, weight=1)
 
-        ttk.Label(form, text="Request").grid(column=0, row=0, sticky="w", pady=4)
+        ttk.Label(form, text="Request").grid(column=0, row=0, sticky="w", pady=(0, 10))
         query_entry = ttk.Entry(form, textvariable=self.query_var)
-        query_entry.grid(column=1, row=0, sticky="ew", pady=4)
+        query_entry.grid(column=1, row=0, sticky="ew", pady=(0, 10))
         query_entry.focus_set()
 
-        ttk.Label(form, text="OS").grid(column=0, row=1, sticky="w", pady=4)
+        ttk.Label(form, text="OS").grid(column=0, row=1, sticky="w", pady=(0, 10))
         os_combo = ttk.Combobox(form, textvariable=self.os_var, state="readonly")
         os_combo["values"] = ("Windows", "Linux")
-        os_combo.grid(column=1, row=1, sticky="w", pady=4)
+        os_combo.grid(column=1, row=1, sticky="w", pady=(0, 10))
 
-        ttk.Label(form, text="Shell").grid(column=0, row=2, sticky="w", pady=4)
+        ttk.Label(form, text="Shell").grid(column=0, row=2, sticky="w")
         self.shell_combo = ttk.Combobox(form, textvariable=self.shell_var, state="readonly")
         self.shell_combo.grid(column=1, row=2, sticky="w", pady=4)
 
         buttons = ttk.Frame(self)
-        buttons.grid(column=0, row=2, sticky="ew", padx=12, pady=(10, 0))
+        buttons.grid(column=0, row=2, sticky="ew", padx=12, pady=(14, 0))
 
         self.generate_btn = ttk.Button(buttons, text="Generate", command=self.on_generate)
         self.generate_btn.grid(column=0, row=0, sticky="w")
@@ -57,13 +107,13 @@ class App(ttk.Frame):
         self.copy_btn = ttk.Button(buttons, text="Copy", command=self.on_copy)
         self.copy_btn.grid(column=1, row=0, sticky="w", padx=(8, 0))
 
-        ttk.Label(self, text="Command").grid(column=0, row=3, sticky="w", padx=12, pady=(12, 4))
+        ttk.Label(self, text="Command").grid(column=0, row=3, sticky="w", pady=(14, 6))
 
         output = ttk.Entry(self, textvariable=self.output_var, state="readonly")
-        output.grid(column=0, row=4, sticky="ew", padx=12)
+        output.grid(column=0, row=4, sticky="ew")
 
         status = ttk.Label(self, textvariable=self.status_var)
-        status.grid(column=0, row=5, sticky="w", padx=12, pady=(8, 12))
+        status.grid(column=0, row=5, sticky="w", pady=(10, 0))
 
     def _wire_events(self) -> None:
         self.os_var.trace_add("write", lambda *_: self._sync_shell_options())
@@ -117,9 +167,25 @@ def run_app() -> None:
     root.title("cmd-ai")
     root.geometry("720x240")
 
+    root.rowconfigure(0, weight=1)
+    root.columnconfigure(0, weight=1)
+
     style = ttk.Style(root)
     if "clam" in style.theme_names():
         style.theme_use("clam")
 
-    App(root)
+    _apply_dark_theme(style, root)
+
+    # Center content with generous padding using an outer container + inner card.
+    container = ttk.Frame(root, padding=24)
+    container.grid(column=0, row=0, sticky="nsew")
+    container.rowconfigure(0, weight=1)
+    container.columnconfigure(0, weight=1)
+
+    card = ttk.Frame(container, padding=20, style="Card.TFrame")
+    card.grid(column=0, row=0, sticky="")
+    card.columnconfigure(0, weight=1)
+
+    app = App(card)
+    app.grid(column=0, row=0, sticky="nsew")
     root.mainloop()

@@ -46,7 +46,3 @@ python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 strict = true
-
-[[tool.mypy.overrides]]
-module = ["tkinter", "tkinter.*"]
-ignore_missing_imports = true

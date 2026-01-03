@@ -10,6 +10,15 @@ WindowsShell = Literal["PowerShell", "CMD"]
 LinuxShell = Literal["Bash"]
 ShellName = Literal["PowerShell", "CMD", "Bash"]
 
+__all__ = [
+    "CommandEntry",
+    "LinuxShell",
+    "OSName",
+    "ShellName",
+    "WindowsShell",
+    "suggest_command",
+]
+
 
 @dataclass(frozen=True)
 class CommandEntry:
@@ -84,7 +93,7 @@ def suggest_command(
 ) -> str | None:
     """Return the best matching command for the query, or None if no match.
 
-    This is intentionally deterministic and offline (no network / no LLM).
+    Intentionally deterministic and offline (no network / no LLM).
     """
 
     scored = [(entry, _score(query, entry)) for entry in knowledge_base]
