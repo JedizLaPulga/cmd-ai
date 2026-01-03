@@ -8,3 +8,28 @@ __pycache__/
 dist/
 build/
 *.egg-info/
+*.gguf
+
+# Coverage
+.coverage
+coverage.xml
+htmlcov/
+
+# Virtualenv / task runners
+.tox/
+.nox/
+
+# Caches
+.hypothesis/
+.cache/
+
+# Environment files
+.env
+.env.*
+
+# Logs
+*.log
+
+# OS / editor
+Thumbs.db
+Desktop.ini
